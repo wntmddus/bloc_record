@@ -23,7 +23,7 @@ module Selection
   def find_one(id)
     ids.each do |id|
       unless id.is_a?(Numeric) && id >= 1
-        raise ArgumentError.new("ID must be an integer greater than or equal to 0")
+        raise ArgumentError.new("ID must be an integer greater than or equal to 1")
       end
     end
     row = connection.get_first_row <<-SQL
@@ -49,6 +49,22 @@ module Selection
 
     init_object_from_row(row)
   end
+  def method_missing(name, *args, &block)
+    if name.is_a?(Symbol)
+      name = name.to_s
+    end
+
+    unless name.is_a?(String)
+      raise ArgumentError.new("Input value must be a string")
+    end
+    row = connection.get_first_row <<-SQL
+     SELECT #{columns.join ","} FROM #{table}
+     WHERE #{name} = #{BlocRecord::Utility.sql_strings(*args)};
+    SQL
+
+    init_object_from_row(row)
+  end
+
 
   def find_each(options)
     rows = connection.execute <<-SQL
